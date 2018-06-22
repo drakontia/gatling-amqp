@@ -1,10 +1,7 @@
-[![Build Status](https://travis-ci.org/maiha/gatling-amqp.svg?branch=master)](https://travis-ci.org/maiha/gatling-amqp)
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/sc.ala/gatling-amqp_2.11/badge.svg)](https://maven-badges.herokuapp.com/maven-central/sc.ala/gatling-amqp_2.11)
+[![Build Status](https://travis-ci.com/SilverXXX/gatling-amqp.svg?branch=master)](https://travis-ci.com/SilverXXX/gatling-amqp)
 
 Introduction
 ============
-
-**NOT WORKING NOW!** Project is compilable (master branch), but it is not working due to migration to post 2.2.0 gatling. It have now a bit different actor/action things internally and it does not match philosophy of original amqp plugin. I will hopefully fix it till the end of 2016.
 
 Gatling AMQP support
 
