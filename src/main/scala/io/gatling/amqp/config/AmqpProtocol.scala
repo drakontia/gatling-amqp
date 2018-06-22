@@ -56,6 +56,7 @@ case class AmqpProtocol(
     factory.setUsername(user)
     factory.setPassword(password)
     factory.setVirtualHost(vhost)
+    factory.setUri(uriString)
     factory.newConnection
   }
 

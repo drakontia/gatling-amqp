@@ -8,9 +8,10 @@ import io.gatling.core.Predef._
 
 class ConsumingSimulation extends Simulation {
   implicit val amqpProtocol: AmqpProtocol = amqp
-    .host("localhost")
-    .port(5672)
-    .auth("guest", "guest")
+//    .host("localhost")
+//    .port(5672)
+//    .auth("guest", "guest")
+    .uriString("amqp://guest:guest@localhost:5672")
 
   val printConsumedMessages = true
 

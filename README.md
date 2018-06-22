@@ -73,6 +73,65 @@ from amqp server is done (sync or async).
   setUp(scn.inject(rampUsers(10) over (1 seconds))).protocols(amqpProtocol)
 ```
 
+## Using URI alternative
+Convenience method for setting the fields in an AMQP URI: host, port, username,
+password and virtual host. If any part of the URI is ommited, the 
+ConnectionFactory's corresponding variable is left unchanged. 
+```
+  implicit val amqpProtocol: AmqpProtocol = amqp
+    .host("localhost")
+    .port(5672)
+    .auth("guest", "guest") 
+```
+Is equivalent to:
+```
+  implicit val amqpProtocol: AmqpProtocol = amqp
+    .uriString("amqp://guest:guest@localhost:5672")
+```
+Note that not all valid AMQP URIs are accepted; in particular, the hostname must be given if the
+port, username or password are given, and escapes in the hostname are not permitted.
+
+### The "amqp" URI scheme
+```
+amqp_URI       = "amqp[s]://" amqp_authority [ "/" vhost ] [ "?" query ]
+   
+amqp_authority = [ amqp_userinfo "@" ] host [ ":" port ]
+   
+amqp_userinfo  = username [ ":" password ]
+```
+#### vhost format
+The vhost component of the URI does not include the leading "/" character from the path,
+and any "/" characters that appear in the vhost name must be [url-encoded](https://www.urlencoder.org/).
+
+The vhost component may be absent; this is indicated by the lack of a "/" character following the 
+amqp_authority. An absent vhost component is not equivalent to an empty (i.e. zero-length) vhost name. 
+
+All the following are equivalent expressions:
+```
+  implicit val amqpProtocol: AmqpProtocol = amqp
+    .uriString("amqp://guest:guest@localhost:5672")
+    .vhost("/")
+```
+```
+  implicit val amqpProtocol: AmqpProtocol = amqp
+    .uriString("amqp://guest:guest@localhost:5672/%2f")
+```
+```
+  import java.net.URLEncoder
+  implicit val amqpProtocol: AmqpProtocol = amqp
+    .uriString("amqp://guest:guest@localhost:5672/" + URLEncoder.encode("/","UTF-8"))
+```
+The vhost component may be absent; this is indicated by the lack of a "/" character following the 
+amqp_authority. An absent vhost component is not equivalent to an empty (i.e. zero-length) vhost name.
+Examples and more details in the [RabbitMQ URI Specification](https://www.rabbitmq.com/uri-spec.html)
+
+## Secure connection (AMQPS)
+Use the URI method and change the `amqp://` to `amqps://`
+```
+  implicit val amqpProtocol: AmqpProtocol = amqp
+    .uriString("amqps://user:pass@host:5672/vhost")
+```
+
 ## declare queues
 
 ```
