@@ -10,12 +10,13 @@ import io.gatling.amqp.data._
 import io.gatling.amqp.event._
 import io.gatling.amqp.infra.AmqpConsumer.DeliveredMsg
 import io.gatling.core.session.Session
-import io.gatling.commons.util.ClockSingleton.nowMillis
+import io.gatling.commons.util.DefaultClock
 import io.gatling.core.action.Action
 
 import scala.util._
 
 class AmqpConsumer(actorName: String)(implicit _amqp: AmqpProtocol) extends AmqpConsumerBase(actorName) with Consumer{
+  private val clock = new DefaultClock()
   private var response: BlockingQueue[DeliveredMsg] = new ArrayBlockingQueue[DeliveredMsg](1);
   //private var _consumer: Option[DefaultConsumer] = None
   //private def consumer = _consumer.getOrElse{ throw new RuntimeException("[bug] consumer is not defined yet") }
@@ -60,8 +61,8 @@ class AmqpConsumer(actorName: String)(implicit _amqp: AmqpProtocol) extends Amqp
   private case class BlockingReadOne(session: Session, requestName: String)
 
   override def isFinished: Boolean = deliveredCount match {
-    case 0 => (lastRequestedAt + initialTimeout < nowMillis)  // wait initial timeout for first publishing
-    case n => (lastDeliveredAt + runningTimeout < nowMillis)  // wait running timeout for last publishing
+    case 0 => (lastRequestedAt + initialTimeout < clock.nowMillis)  // wait initial timeout for first publishing
+    case n => (lastDeliveredAt + runningTimeout < clock.nowMillis)  // wait running timeout for last publishing
   }
 
   override def receive = super.receive.orElse {
@@ -113,11 +114,11 @@ class AmqpConsumer(actorName: String)(implicit _amqp: AmqpProtocol) extends Amqp
     * @param next
     */
   protected def consumeSingle(req: ConsumeSingleMessageRequest, session: Session, next: Action): Unit = {
-    val startAt = nowMillis
+    val startAt = clock.nowMillis
     val getSingle: GetResponse = channel.basicGet(req.queueName, req.autoAck)
 
     def processResponse(consumedBy: String, envelope: Envelope, properties: BasicProperties, body: Array[Byte]) = {
-      val endAt = nowMillis
+      val endAt = clock.nowMillis
       // save delivered message into session if requested so
       val newSession = if (req.saveResultToSession) {
         session.set(AmqpConsumer.LAST_CONSUMED_MESSAGE_KEY, DeliveredMsg(envelope, properties, body))
@@ -153,7 +154,7 @@ class AmqpConsumer(actorName: String)(implicit _amqp: AmqpProtocol) extends Amqp
 
         case Failure(ex) =>
           try {
-            val endAt = nowMillis
+            val endAt = clock.nowMillis
             ex match {
               case DeliveryTimeouted(msec) =>
                 statsNg(session, startAt, endAt, "consumeSingle" + "-" + req.requestName, None, s"DeliveryTimeouted($msec)")
@@ -189,12 +190,12 @@ class AmqpConsumer(actorName: String)(implicit _amqp: AmqpProtocol) extends Amqp
   }
 
   protected def tryNextDelivery(timeoutMsec: Long): Try[Delivered] = Try {
-    lastRequestedAt = nowMillis
+    lastRequestedAt = clock.nowMillis
     val nextDelivery: DeliveredMsg = response.poll(timeoutMsec, TimeUnit.MILLISECONDS)
     if (nextDelivery == null) {
       throw DeliveryTimeouted(timeoutMsec)
     }
-    lastDeliveredAt = nowMillis
+    lastDeliveredAt = clock.nowMillis
     Success(Delivered(lastRequestedAt, lastDeliveredAt, nextDelivery))
   }.flatten
 
