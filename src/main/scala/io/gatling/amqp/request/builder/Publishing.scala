@@ -4,14 +4,17 @@ import com.rabbitmq.client.AMQP.BasicProperties
 import io.gatling.amqp.data._
 import io.gatling.core.Predef._
 import io.gatling.core.session.Expression
-import io.gatling.commons.util.ClockSingleton
+import io.gatling.commons.util.DefaultClock
 
-import scala.collection.JavaConversions._
+import collection.mutable._
+import scala.collection.JavaConverters._
 
 trait Publishing {
   this: AmqpRequestBuilder =>
 
-  def publish(exchangeName: Expression[String], body: Either[Expression[String], String], replyToProperty: Option[String] = None, headers: Map[String, AnyRef] = Map.empty): AmqpRequestBuilder = {
+  val clock = new DefaultClock()
+
+  def publish(exchangeName: Expression[String], body: Either[Expression[String], String], replyToProperty: Option[String] = None, headers: java.util.Map[String, Object] = Map.empty.asJava): AmqpRequestBuilder = {
     val bb = new BasicProperties.Builder()
     replyToProperty.map(bb.replyTo(_))
     bb.headers(headers)
@@ -36,11 +39,10 @@ trait Publishing {
                       replyToProperty: Option[String] = None,
                       customHeaders: Map[String, AnyRef] = Map.empty,
                       corrId: Expression[String] = session => {
-                        session.userId + "-" + ClockSingleton.nowMillis
-               }): AmqpRequestBuilder = {
+                        session.userId + "-" + clock.nowMillis }): AmqpRequestBuilder = {
     val propExpression: Expression[BasicProperties] = session => {
       val bb = new BasicProperties.Builder() //.headers(Map(keyValue)) // keyValue: (String, String), // import scala.collection.JavaConversions._
-      bb.headers(customHeaders)
+      bb.headers(customHeaders.asJava)
       replyToProperty.map(bb.replyTo(_))
       bb.correlationId(corrId.apply(session).get)
       bb.build()
