@@ -12,6 +12,7 @@ import io.gatling.core.Predef._
 import org.slf4j.LoggerFactory
 
 import scala.concurrent.duration._
+import scala.collection.JavaConverters._
 
 /**
   * Echo service replies with received correlation id. Testing client (scenario testingEchoServiceScenario) is checking
@@ -70,7 +71,7 @@ class RpcSimulation extends Simulation {
               val correlationId = msg.properties.getCorrelationId
               val prop = new BasicProperties.Builder
               import scala.collection.JavaConversions._
-              prop.headers(Map("statusCode" -> 200.asInstanceOf[AnyRef]))
+              prop.headers(Map("statusCode" -> 200.asInstanceOf[AnyRef]).asJava)
               if (correlationId != null && correlationId.nonEmpty) {
                 log.info("Going to set correlation id to response. correlationId={}.", correlationId.asInstanceOf[Any])
                 prop.correlationId(correlationId)
