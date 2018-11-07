@@ -29,12 +29,13 @@ trait Publishing {
         exchangeName: Expression[String],
         body: Either[Expression[String], String],
         replyToProperty: Option[String] = None,
-        headers: java.util.Map[String, Object] = Map.empty.asJava)
-        user: Option[String] = None : AmqpRequestBuilder = {
+        headers: java.util.Map[String, Object] = Map.empty.asJava,
+        user: Option[String] = None): AmqpRequestBuilder = {
     val bb = new BasicProperties.Builder()
     replyToProperty.map(bb.replyTo(_))
     bb.headers(headers)
-    bb.userId(user)
+    if (!user.isEmpty)
+      bb.userId(user.get)
     publish(PublishRequestAsync(this.requestName, exchangeName, body, bb.build()))
   }
 
