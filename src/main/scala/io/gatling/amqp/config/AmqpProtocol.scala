@@ -2,6 +2,7 @@ package io.gatling.amqp.config
 
 import akka.actor.ActorSystem
 import com.rabbitmq.client.ConnectionFactory
+import com.rabbitmq.client.DefaultSaslConfig
 import com.typesafe.scalalogging.StrictLogging
 import io.gatling.amqp.data._
 import io.gatling.amqp.event._
@@ -10,12 +11,16 @@ import io.gatling.core.config.GatlingConfiguration
 import io.gatling.core.controller.throttle.Throttler
 import io.gatling.core.protocol.{Protocol, ProtocolKey}
 import io.gatling.core.stats.StatsEngine
+import java.security.KeyStore
+import javax.net.ssl._
+import java.security.cert.{CertificateFactory, X509Certificate}
+import java.security.{KeyPair, KeyStore, Security}
 
 object AmqpProtocol {
   val AmqpProtocolKey = new ProtocolKey {
 
-    type Protocol = AmqpProtocol
-    type Components = AmqpComponents
+    override type Protocol = AmqpProtocol
+    override type Components = AmqpComponents
     def protocolClass: Class[io.gatling.core.protocol.Protocol] = classOf[AmqpProtocol].asInstanceOf[Class[io.gatling.core.protocol.Protocol]]
 
     def defaultProtocolValue(configuration: GatlingConfiguration): AmqpProtocol = AmqpProtocol(configuration)
@@ -53,10 +58,17 @@ case class AmqpProtocol(
     val factory = new ConnectionFactory()
     factory.setHost(host)
     factory.setPort(port)
-    factory.setUsername(user)
-    factory.setPassword(password)
     factory.setVirtualHost(vhost)
     factory.setUri(uriString)
+    isExternal match {
+      case true =>
+        factory.setSaslConfig(DefaultSaslConfig.EXTERNAL)
+        factory.useSslProtocol(getSSLContext)
+        factory.enableHostnameVerification
+      case false =>
+        factory.setUsername(user)
+        factory.setPassword(password)
+    }
     factory.newConnection
   }
 
@@ -73,11 +85,46 @@ case class AmqpProtocol(
   def isConfirmMode: Boolean = connection.confirm
 
   /**
+   * Whether is AMQP channel used for external connection? (RabbitMQ feature)
+   */
+  def isExternal: Boolean = connection.external
+
+  /**
    * warmUp AMQP protocol (invoked by gatling framework)
    */
   def warmUp(system: ActorSystem, statsEngine: StatsEngine, throttler: Throttler): Unit = {
     logger.info("amqp: warmUp start")
     awaitPreparation()
+  }
+
+  /**
+   * Build SSLContext with server key, certificate and CA certificate
+   */
+  def getSSLContext: SSLContext = {
+
+    // Create and initialize the SSLContext with key material
+    val passphrase = "changeit".toCharArray()
+    // First initialize the key and trust material
+    val ks = KeyStore.getInstance("PKCS12")
+    val keystoreResource = this.getClass.getClassLoader.getResourceAsStream(connection.servercert)
+    ks.load(keystoreResource, passphrase)
+
+    // KeyManagers decide which key material to us
+    val kmf = KeyManagerFactory.getInstance("SunX509")
+    kmf.init(ks, passphrase)
+
+    // TrustManagers decide whether to allow connections
+    val tks = KeyStore.getInstance("JKS");
+    val trustPassphrase = "changeit".toCharArray()
+    val rootCaKeystoreResource = this.getClass.getClassLoader.getResourceAsStream(connection.cacert)
+    tks.load(rootCaKeystoreResource, trustPassphrase)
+
+    val tmf = TrustManagerFactory.getInstance("SunX509")
+    tmf.init(tks)
+
+    val sslContext = SSLContext.getInstance("TLS")
+    sslContext.init(kmf.getKeyManagers, tmf.getTrustManagers, null)
+    sslContext
   }
 
   override def toString: String = {

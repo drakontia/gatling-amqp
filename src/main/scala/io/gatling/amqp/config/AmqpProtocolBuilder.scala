@@ -31,9 +31,15 @@ case class AmqpProtocolBuilder(
   def password(p: String) = copy(connection = connection.copy(password = p))
   def confirm(b: Boolean) = copy(connection = connection.copy(confirm = b))
 
+  // External Connection
+  def external(e: Boolean) = copy(connection = connection.copy(external = e))
+  def serverCert(s: String) = copy(connection = connection.copy(servercert = s))
+  def caCert(c: String) = copy(connection = connection.copy(cacert = c))
+
   // shortcuts
   def auth(u: String, p: String) = user(u).password(p)
   def confirmMode()       = confirm(true)
+  def externalConn()          = external(true)
 
   // prepare
   def prepare(msg: AmqpChannelCommand) = copy(preparings = preparings :+ msg)
