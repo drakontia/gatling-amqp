@@ -9,7 +9,7 @@ import scala.concurrent.duration._
 import collection.mutable._
 import scala.collection.JavaConverters._
 
-class PublishingSimulationX extends Simulation {
+class PublishingSimulationWithExternal extends Simulation {
   private val exchangePubSim: AmqpExchange = exchange("gatlingPublishingSimulation", "fanout", durable = true, autoDelete = false)
   private val queueQ1: AmqpQueue = queue("q1", durable = true, autoDelete = false)
   implicit val amqpProtocol: AmqpProtocol = amqp
