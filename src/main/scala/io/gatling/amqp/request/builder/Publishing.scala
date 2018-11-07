@@ -14,10 +14,27 @@ trait Publishing {
 
   val clock = new DefaultClock()
 
-  def publish(exchangeName: Expression[String], body: Either[Expression[String], String], replyToProperty: Option[String] = None, headers: java.util.Map[String, Object] = Map.empty.asJava): AmqpRequestBuilder = {
+  def publish(
+        exchangeName: Expression[String],
+        body: Either[Expression[String], String],
+        replyToProperty: Option[String] = None,
+        headers: java.util.Map[String, Object] = Map.empty.asJava): AmqpRequestBuilder = {
     val bb = new BasicProperties.Builder()
     replyToProperty.map(bb.replyTo(_))
     bb.headers(headers)
+    publish(PublishRequestAsync(this.requestName, exchangeName, body, bb.build()))
+  }
+
+  def publishWithUser(
+        exchangeName: Expression[String],
+        body: Either[Expression[String], String],
+        replyToProperty: Option[String] = None,
+        headers: java.util.Map[String, Object] = Map.empty.asJava)
+        user: Option[String] = None : AmqpRequestBuilder = {
+    val bb = new BasicProperties.Builder()
+    replyToProperty.map(bb.replyTo(_))
+    bb.headers(headers)
+    bb.userId(user)
     publish(PublishRequestAsync(this.requestName, exchangeName, body, bb.build()))
   }
 
